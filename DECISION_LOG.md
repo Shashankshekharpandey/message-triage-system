@@ -1,0 +1,13 @@
+# Decision Log: GAJAN Message Triage
+
+**Built:** A FastAPI service and CLI that turn messages into structured intents, extracted details, priority, a suggested team and next actions. Pydantic defines and validates the input and output. The 25 supplied records remain unchanged; their `id`, `received_at` and `text` fields are accepted. Both mock rules and an optional Groq/OpenAI-compatible LLM provider are supported.
+
+**Key decisions:** Support multiple intents and preserve result order in batches. Treat every result as a recommendation, not an executed action. Run deterministic safety checks in Python, including after LLM classification. Route medical questions to qualified review; require human review for financial requests, suspected instruction overrides, urgent travel, ambiguity, low confidence and processing failures. Keep a no-credentials mock mode for repeatable local use.
+
+**Not built:** No booking, order, payment, CRM, customer-reply, or attachment integration; no database, durable queue, authentication, or external review workflow. These require business-system access, operational infrastructure, or authority to perform side effects that the assignment does not provide. `lookup_required` and `human_review_required` are signals only; they do not perform a lookup or notify a person.
+
+**Where it breaks:** The sample set is small and unlabeled, so it cannot establish accuracy. Phrase rules are narrow and English-heavy; they can miss paraphrases and multilingual meaning. Injection patterns are defense in depth, not complete protection. LLM output can contain unsupported facts, and schema validation checks shape, not truth. Confidence is heuristic in mock mode and model-reported in LLM mode; neither is calibrated. Provider limits, outages and unsupported structured-output features can cause failures. Attachments are not read.
+
+**Scale and cost assumptions:** 10,000 messages/day averages about 0.116 messages/second. Async provider calls and bounded concurrency support overlapping requests, but this synchronous service has no durable queue and burst capacity is unverified. Cost depends on the selected provider and measured tokens. The README's illustration assumes 800 input and 150 output tokens per message; at hypothetical rates of $1/M input and $4/M output tokens, model cost is $1.40 per 1,000 messages, excluding retries, infrastructure and human review. This is not a quote or measured cost.
+
+**AI tools used:** OpenAI Codex was used during project implementation. The demo/mock processing path does not call an LLM; LLM processing occurs only when configured.
